@@ -1,37 +1,62 @@
--- Khởi động Lazy.nvim và setup các plugin từ các file con
--- Đảm bảo đã install lazy.nvim ở ~/.config/nvim/lazy hoặc dùng lazy installer script
-
-local lazy_path = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
-if not vim.loop.fs_stat(lazy_path) then
-  -- Tự động clone lazy.nvim nếu chưa có
-  vim.fn.system({
+-- 1. Tự động cài đặt Lazy.nvim nếu chưa có (Bootstrapping)
+local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
+if not (vim.uv or vim.loop).fs_stat(lazypath) then
+  local lazyrepo = "https://github.com/folke/lazy.nvim.git"
+  local out = vim.fn.system({
     "git",
     "clone",
     "--filter=blob:none",
-    "https://github.com/folke/lazy.nvim.git",
-    "--branch=stable", -- Khuyến nghị dùng branch stable
-    lazy_path
+    "--branch=stable",
+    lazyrepo,
+    lazypath,
   })
+  if vim.v.shell_error ~= 0 then
+    vim.api.nvim_echo({
+      { "Failed to clone lazy.nvim:\n", "ErrorMsg" },
+      { out, "WarningMsg" },
+      { "\nPress any key to exit...", "MoreMsg" },
+    }, true, {})
+    vim.fn.getchar()
+    os.exit(1)
+  end
 end
-vim.opt.rtp:prepend(lazy_path)
+vim.opt.rtp:prepend(lazypath)
 
+-- 2. Cấu hình Lazy.nvim và Import các plugin
 require("lazy").setup({
---  { import = "plugins.colorscheme" },   -- cấu hình theme
-  { import = "plugins.lsp" },           -- cấu hình LSP
-  { import = "plugins.treesitter" },    -- cấu hình Treesitter
-  { import = "plugins.telescope" },     -- cấu hình Telescope
-  { import = "plugins.files" },          -- cau hinh file
-  { import = "plugins.alpha" }
-  { import = "plugins.terminal"}
-  { import = "plugins.theme"}
-  -- bạn thêm các plugin khác theo mong muốn, ví dụ:
- }, {
-  -- Các tùy chỉnh cho Lazy.nvim (optional)
-  ui = {
-    border = "rounded"
+  spec = {
+    -- Import toàn bộ file trong thư mục lua/plugins
+    { import = "plugins.lsp" },
+    { import = "plugins.treesitter" },
+    { import = "plugins.telescope" },
+    { import = "plugins.files" },
+    { import = "plugins.alpha" },
+    { import = "plugins.terminal" },
+    { import = "plugins.theme" },
   },
+  -- 3. Cấu hình giao diện và hệ thống cho Lazy
   defaults = {
-    lazy = false,
-    version = false,
+    lazy = false, -- Các plugin sẽ load ngay lập tức trừ khi có cấu hình lazy cụ thể
+    version = false, -- Luôn dùng bản mới nhất (stable)
   },
+  install = { colorscheme = { "habamax" } }, -- Theme tạm thời khi cài đặt
+  ui = {
+    border = "rounded", -- Viền bo tròn cho cửa sổ Lazy
+    icons = {
+      cmd = "⌘",
+      config = "🛠",
+      event = "📅",
+      ft = "📂",
+      init = "⚙",
+      keys = "🗝",
+      plugin = "🔌",
+      runtime = "💻",
+      require = "🌙",
+      source = "📄",
+      start = "🚀",
+      task = "📌",
+      lazy = "💤 ",
+    },
+  },
+  checker = { enabled = true }, -- Tự động kiểm tra bản cập nhật cho plugin
 })
