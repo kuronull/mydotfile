@@ -22,6 +22,8 @@ require("lazy").setup({
   { import = "plugins.telescope" },     -- cấu hình Telescope
   { import = "plugins.files" },          -- cau hinh file
   { import = "plugins.alpha" }
+  { import = "plugins.terminal"}
+  { import = "plugins.theme"}
   -- bạn thêm các plugin khác theo mong muốn, ví dụ:
  }, {
   -- Các tùy chỉnh cho Lazy.nvim (optional)
