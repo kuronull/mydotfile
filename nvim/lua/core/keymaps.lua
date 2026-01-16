@@ -1,5 +1,5 @@
 -- 1. Thiết lập Leader key (nên đặt đầu file)
-vim.g.mapleader = " "
+vim.g.mapleader = " ".config/nvim
 
 -- 2. Rút gọn hàm set keymap để code sạch hơn
 local map = vim.keymap.set
@@ -33,3 +33,9 @@ map("n", "<leader>fh", "<cmd>Telescope help_tags<cr>", { desc = "Help tags" })
 
 -- NvimTree (Trình quản lý file)
 map("n", "<leader>e", "<cmd>NvimTreeToggle<CR>", { desc = "Toggle File Explorer" })
+
+-- Auto format code
+map("n", "<leader>c", vim.diagnostic.open_float, { desc = "Show diagnostics" })
+
+-- code action (quick fix in vscode)
+map( "n", "<leader>b", vim.lsp.buf.code_action, { desc = "Code action (Quick Fix)" })

@@ -27,3 +27,10 @@ option.smartcase = true -- nếu gõ chữ hoa, nó sẽ tự động tìm kiế
 ---Hệ thống và Hiệu năng
 ------------------
 option.clipboard = "unnamedplus"
+
+
+-----------------
+---Auto save
+-----------------
+vim.opt.autowrite = true
+vim.opt.autowriteall = true

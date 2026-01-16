@@ -1,84 +1,88 @@
 return {
-  -- 1. Quản lý cài đặt LSP Server
+  -- 1. Mason quản lý các Server (Tải về máy)
   {
     "williamboman/mason.nvim",
     cmd = "Mason",
-    build = ":MasonUpdate",
-    opts = {
-      ui = { border = "rounded" },
-    },
+    opts = { ui = { border = "rounded" } },
   },
 
-  -- 2. Cầu nối giữa Mason và lspconfig
+  -- 2. Mason-LSPConfig (Tự động kết nối server với Neovim)
   {
     "williamboman/mason-lspconfig.nvim",
     opts = {
-      -- Tự động cài đặt các server này nếu chưa có
+      -- Danh sách server cho các ngôn ngữ bạn yêu cầu:
       ensure_installed = {
-        "pyright", "lua_ls", "rust_analyzer", 
-        "clangd", "html", "cssls", "ts_ls"
+        "pyright",       -- Python
+        "rust_analyzer", -- Rust
+        "html",          -- HTML
+        "cssls",         -- CSS
+        "ts_ls",         -- JavaScript/TypeScript (thường đi kèm web)
+        "lua_ls",        -- Lua (cho chính Neovim)
       },
     },
   },
 
-  -- 3. Cấu hình LSP Main
+  -- 3. Bộ máy Autocomplete (Cái Menu hiện ra khi gõ)
   {
-    "neovim/nvim-lspconfig",
-    event = { "BufReadPre", "BufNewFile" },
+    "hrsh7th/nvim-cmp",
+    event = "InsertEnter",
     dependencies = {
-      "hrsh7th/cmp-nvim-lsp", -- Giúp LSP hiểu được Auto-completion
-      { "folke/neodev.nvim", opts = {} }, -- Hỗ trợ viết code Lua/Nvim tốt hơn
+      "hrsh7th/cmp-nvim-lsp",
+      "L3MON4D3/LuaSnip",
+      "saadparwaiz1/cmp_luasnip",
     },
     config = function()
-      local lspconfig = require("lspconfig")
-      local capabilities = require("cmp_nvim_lsp").default_capabilities()
-
-      -- Hàm thiết lập phím tắt khi LSP kết nối thành công
-      local on_attach = function(_, bufnr)
-        local map = function(mode, lhs, rhs, desc)
-          vim.keymap.set(mode, lhs, rhs, { buffer = bufnr, desc = "LSP: " .. desc })
-        end
-
-        map("n", "gd", vim.lsp.buf.definition, "Go to Definition")
-        map("n", "gr", "<cmd>Telescope lsp_references<cr>", "Show References")
-        map("n", "K", vim.lsp.buf.hover, "Hover Documentation")
-        map("n", "<leader>rn", vim.lsp.buf.rename, "Rename Symbol")
-        map("n", "<leader>ca", vim.lsp.buf.code_action, "Code Action")
-        map("n", "[d", vim.diagnostic.goto_prev, "Go to previous diagnostic")
-        map("n", "]d", vim.diagnostic.goto_next, "Go to next diagnostic")
-      end
-
-      -- Danh sách các server cần setup
-      local servers = {
-        pyright = {},
-        rust_analyzer = {},
-        clangd = {},
-        html = {},
-        cssls = {},
-        ts_ls = {}, -- tsserver cũ
-        lua_ls = {
-          settings = {
-            Lua = {
-              diagnostics = { globals = { "vim" } },
-              workspace = { checkThirdParty = false },
-            },
-          },
+      local cmp = require("cmp")
+      cmp.setup({
+        snippet = { expand = function(args) require("luasnip").lsp_expand(args.body) end },
+        window = {
+          completion = cmp.config.window.bordered(),
+          documentation = cmp.config.window.bordered(),
         },
-      }
-
-      -- Tự động setup tất cả server trong danh sách trên
-      for server, config in pairs(servers) do
-        lspconfig[server].setup(vim.tbl_deep_extend("force", {
-          capabilities = capabilities,
-          on_attach = on_attach,
-        }, config))
-      end
-
-      -- Cấu hình UI cho thông báo lỗi (Diagnostic)
-      vim.diagnostic.config({
-        float = { border = "rounded" },
-        virtual_text = { prefix = "●" },
+        mapping = cmp.mapping.preset.insert({
+          ["<C-Space>"] = cmp.mapping.complete(),
+          ["<CR>"] = cmp.mapping.confirm({ select = true }),
+          ["<Tab>"] = cmp.mapping.select_next_item(),
+          ["<S-Tab>"] = cmp.mapping.select_prev_item(),
+        }),
+        sources = cmp.config.sources({
+          { name = "nvim_lsp" }, -- Đây là nguồn lấy từ các ngôn ngữ Python, Rust...
+          { name = "luasnip" },
+        }),
       })
     end,
   },
+
+  -- 4. Kích hoạt Server (Sửa lỗi "require('lspconfig') is deprecated")
+  {
+    "neovim/nvim-lspconfig",
+    event = { "BufReadPre", "BufNewFile" },
+    config = function()
+      local capabilities = require("cmp_nvim_lsp").default_capabilities()
+
+      -- Thiết lập phím tắt LSP chuẩn mới (LspAttach)
+      vim.api.nvim_create_autocmd('LspAttach', {
+        callback = function(ev)
+          local opts = { buffer = ev.buf }
+          vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts) -- Đi tới định nghĩa
+          vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)       -- Xem thông tin hàm
+        end,
+      })
+
+      -- Vòng lặp kích hoạt từng ngôn ngữ để tránh gọi trực tiếp 'lspconfig' gây lỗi
+      local servers = { "pyright", "rust_analyzer", "html", "cssls", "ts_ls", "lua_ls" }
+      for _, lsp in ipairs(servers) do
+          if vim.lsp.config then
+            vim.lsp.config(lsp, {
+                capabilities = capabilities,
+            })
+            vim.lsp.enable(lsp)
+          else
+            require('lspconfig')[lsp].setup({
+                capabilities = capabilities,
+            })
+          end
+       end
+    end
+  }
 }
