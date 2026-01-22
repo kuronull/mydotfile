@@ -1,5 +1,5 @@
 -- 1. Thiết lập Leader key (nên đặt đầu file)
-vim.g.mapleader = " ".config/nvim
+vim.g.mapleader = " "
 
 -- 2. Rút gọn hàm set keymap để code sạch hơn
 local map = vim.keymap.set
